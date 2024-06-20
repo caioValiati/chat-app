@@ -12,11 +12,10 @@ export const mockMessage = (message: Message): ModIMessage => {
       status: message.status,
       text: message.conteudo,
       createdAt: message.dataEnvio,
-      image: message.image,
+      image: message.image ? `data:image/png;base64,${message.image}` : null,
       user: {
         _id: message.usuarioRemetenteId ?? 0,
         name: 'React Native',
-        avatar: 'https://picsum.photos/140/140',
       },
     }
 }
@@ -29,14 +28,14 @@ export const formatTime = (dateString: string | Date) => {
     return `${hours}:${minutes < 10 ? `0${minutes}` : minutes}`;
 }
 
-export const selectImage = (onImageSelect: ((asset: any) => void)) => {
-  launchImageLibrary({ mediaType: 'photo', includeBase64: true }, (response) => {
+export const selectImage = (onImageSelect: ((asset: any) => void), selectionLimit = 0) => {
+  launchImageLibrary({ mediaType: 'photo', includeBase64: true, quality: 1, selectionLimit: selectionLimit }, (response) => {
     if (response.didCancel) {
       console.log('User cancelled image picker');
     } else if (response.errorCode) {
       console.log('ImagePicker Error: ', response.errorMessage);
     } else if (response.assets && response.assets.length > 0) {
-      onImageSelect(response.assets[0]);
+      onImageSelect(response.assets);
     }
   });
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Actions, ActionsProps, Bubble, Composer, ComposerProps, GiftedChat, IMessage, InputToolbar, SendProps } from 'react-native-gifted-chat';
 import axios from 'axios';
-import { Platform, Pressable, TouchableHighlight, View, Text, Image } from 'react-native';
+import { Platform, Pressable, TouchableHighlight, View, Text, Image, FlatList } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons'
 import FeatherIcon from 'react-native-vector-icons/Feather'
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,6 @@ import { defaultImageUri, mockMessage, selectImage } from '../../utils/utils';
 import EditMessageModal from '../../components/EditMessageModal';
 import DeleteMessageConfirmationModal from '../../components/DeleteMessageModal';
 import { Asset } from 'react-native-image-picker';
-import { Image as Img } from 'react-native-compressor';
 
 
 const ChatScreen = (props: {navigation: any, route: any}) => {
@@ -21,6 +20,7 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [currentSelectedMessage, setCurrentSelectedMessage] = useState<IMessage>()
     const [messages, setMessages] = useState<IMessage[]>([])
+    const [messageImages, setMessageImages] = useState<Asset[]>([])
     const [userId, setUserId] = useState<number>();
     const userForId = props.route.params.id;
     const userForName = props.route.params.contactName;
@@ -101,6 +101,7 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
 
             axios.get(API_ENDPOINTS.GET_MENSAGENS + `/${id}/${userForId}`)
             .then((responseData) => {
+              console.log(responseData.data)
               setMessages(responseData.data.map((r: Message) => {
                 return mockMessage(r)
               }).sort((a: IMessage, b: IMessage) => {
@@ -129,17 +130,12 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
         }
       }
     }, []);
-
-    const compressImage = async (base64ImageUri: string) => {
-      const image = await Img.compress(base64ImageUri)
-      console.log(image)
-    };
   
-    const sendMessage = async (message: string, image?: Asset) => {
-      if (!message && !image) return
+    const sendMessage = async (message: string) => {
+      if (!message && messageImages.length == 0) return
 
       const messageObj: Message = {
-        id: ((messages[0]?._id as number) ?? 0) + 1,
+        id: messages.length > 0 ? Math.max(...messages.map(m => (m?._id as number))) : 0,
         usuarioRemetenteId: userId ?? 0,
         usuarioDestinatarioId: userForId ?? 0,
         dataEnvio: new Date(),
@@ -149,21 +145,41 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
       }
 
       if (connection) {   
-        const newMessage = {
-          ...messageObj,
-          status: -1,
-        };      
-        updateMessages(newMessage)
+        if (messageImages.length > 0) {
+          messageImages.forEach((image, index) => {
+            const newMessage = {
+              ...messageObj,
+              id: messageObj.id + index + 1,
+            };    
+            updateMessages({...newMessage, status: -1})
+            
+            if (index !== 0) {
+              newMessage.conteudo = ""
+            }
 
-        compressImage(image?.base64 ?? "")
-
-        connection.invoke('SendMessage', messageObj, image?.base64)
-          .then(() => {
-            messageObj.status = 0;
-            messageObj.image = image?.uri;
-            updateEditedMessage(mockMessage(messageObj))
+            connection.invoke('SendMessage', newMessage, image?.base64)
+            .then(() => {
+              newMessage.status = 0;
+              newMessage.image = image?.base64;
+              setMessageImages([])
+              updateEditedMessage(mockMessage(newMessage))
+            })
+            .catch((err: any) => console.error('Error sending message:', err));
           })
-          .catch((err: any) => console.error('Error sending message:', err));
+        } else {
+          const newMessage = {
+            ...messageObj,
+            status: -1,
+          };      
+          updateMessages(newMessage)
+          connection.invoke('SendMessage', messageObj, null)
+            .then(() => {
+              messageObj.status = 0;
+              updateEditedMessage(mockMessage(messageObj))
+            })
+            .catch((err: any) => console.error('Error sending message:', err));
+        }
+
 
       } else {
         console.error('WebSocket connection not established');
@@ -231,12 +247,32 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
         }}
       />
     );
+
+    const renderToolbarImagesSelection = () => {
+      return (
+        <FlatList
+          contentContainerStyle={styles.imageSelectionContainer}
+          data={messageImages}
+          numColumns={messageImages.length + 1}
+          renderItem={(image) => (
+            <Image 
+              style={styles.imageSelection} 
+              source={{uri: image.item.uri}} 
+            />
+          )}
+        />
+      )
+    }
   
     const renderInputToolbar = (props: any) => {
       return (
         <InputToolbar
           {...props}
+          renderAccessory={messageImages.length > 0 ? renderToolbarImagesSelection : null}
           renderSend={sendButton}
+          accessoryStyle={{
+            height: 110
+          }}
           primaryStyle={{
             alignItems: 'center',
             paddingRight: 5
@@ -299,8 +335,8 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
 
     function renderActions(props: Readonly<ActionsProps>) {
 
-      const sendImageMessage = (asset: Asset) => {
-        sendMessage("", asset)
+      const sendImageMessage = (assets: Asset[]) => {
+        setMessageImages([...assets, ...assets, ...assets])
       }
 
       return (
@@ -327,7 +363,6 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
           renderAvatar={null}
           renderComposer={ChatComposer}
           messages={messages}
-          options={['teste']}
           onLongPress={(e, c) => setActionSheetWithOptions(e, c)}
           renderBubble={renderBubble}
           renderInputToolbar={renderInputToolbar}

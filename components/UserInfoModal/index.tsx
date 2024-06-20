@@ -23,9 +23,10 @@ const UserInfoModal = (props: Props) => {
     const uploadImage = async () => {
       const url = API_ENDPOINTS.GET_USUARIOS + `/${props.user?.id}`;
       const formData = new FormData();
+      const img = photo[0]
 
-      if (photo) {
-        const base64Response = await fetch(photo.uri);
+      if (img) {
+        const base64Response = await fetch(img.uri);
         const blob = await base64Response.blob();
         formData.append('file', blob);
       }
@@ -65,7 +66,7 @@ const UserInfoModal = (props: Props) => {
           <Text style={styles.modalText}>Informações de Usuário.</Text>
           <View style={{display: 'flex', flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
             <Pressable
-              onPress={() => selectImage(setPhoto)}
+              onPress={() => selectImage(setPhoto, 1)}
             >
               <View style={styles.avatarContainer}>
                 <Image 

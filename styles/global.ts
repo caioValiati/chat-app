@@ -117,20 +117,33 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
       },
-      contactName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#242424',
-      },
-      chatAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 15,
-        objectFit: 'fill'
-      },
-      backButton: {
-        paddingRight: 10,
-        paddingLeft: 10,
-      }
+    contactName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#242424',
+    },
+    chatAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      marginRight: 15,
+      objectFit: 'fill'
+    },
+    backButton: {
+      paddingRight: 10,
+      paddingLeft: 10,
+    },
+    imageSelectionContainer: {
+      display: 'flex',
+      flexDirection: 'row',
+      overflow: 'scroll',
+      marginLeft: 10
+    },
+    imageSelection: {
+      width: 100,
+      height: 100,
+      marginRight: 10,
+      borderRadius: 5,
+      objectFit: 'fill'
+    },
   });
