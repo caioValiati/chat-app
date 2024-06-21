@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Actions, ActionsProps, Bubble, Composer, ComposerProps, GiftedChat, IMessage, InputToolbar, SendProps } from 'react-native-gifted-chat';
 import axios from 'axios';
 import { Platform, Pressable, TouchableHighlight, View, Text, Image, FlatList } from 'react-native';
@@ -135,7 +135,7 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
       if (!message && messageImages.length == 0) return
 
       const messageObj: Message = {
-        id: messages.length > 0 ? Math.max(...messages.map(m => (m?._id as number))) : 0,
+        id: (messages.length > 0 ? Math.max(...messages.map(m => (m?._id as number))) : 0) + 1,
         usuarioRemetenteId: userId ?? 0,
         usuarioDestinatarioId: userForId ?? 0,
         dataEnvio: new Date(),
@@ -147,15 +147,18 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
       if (connection) {   
         if (messageImages.length > 0) {
           messageImages.forEach((image, index) => {
+            
             const newMessage = {
               ...messageObj,
-              id: messageObj.id + index + 1,
-            };    
-            updateMessages({...newMessage, status: -1})
-            
+              id: messageObj.id + index,
+            };   
+
             if (index !== 0) {
               newMessage.conteudo = ""
-            }
+            } 
+
+            updateMessages({...newMessage, status: -1})
+            
 
             connection.invoke('SendMessage', newMessage, image?.base64)
             .then(() => {
@@ -248,21 +251,43 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
       />
     );
 
-    const renderToolbarImagesSelection = () => {
+    const renderToolbarImagesSelection = useCallback(() => {
       return (
         <FlatList
+          keyExtractor={(item, index) => "_" + index}
           contentContainerStyle={styles.imageSelectionContainer}
           data={messageImages}
-          numColumns={messageImages.length + 1}
+          key={messageImages.length + 1}
           renderItem={(image) => (
-            <Image 
-              style={styles.imageSelection} 
-              source={{uri: image.item.uri}} 
-            />
+            <View style={{position: 'relative'}}>
+              <Pressable
+                onPress={() => {
+                  setMessageImages([...messageImages.filter(m => m != messageImages[image.index])])
+                }}
+                style={{
+                  position: 'absolute', 
+                  zIndex: 10,
+                  top: 4, 
+                  right: 14, 
+                  backgroundColor: '#0084FF',
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <Icon color='white' name='close' />
+              </Pressable>
+              <Image 
+                style={styles.imageSelection} 
+                source={{uri: image.item.uri}} 
+              />
+            </View>
           )}
         />
       )
-    }
+    }, [messageImages])
   
     const renderInputToolbar = (props: any) => {
       return (
@@ -336,7 +361,7 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
     function renderActions(props: Readonly<ActionsProps>) {
 
       const sendImageMessage = (assets: Asset[]) => {
-        setMessageImages([...assets, ...assets, ...assets])
+        setMessageImages(prevState => [...prevState, ...assets])
       }
 
       return (
@@ -344,6 +369,7 @@ const ChatScreen = (props: {navigation: any, route: any}) => {
           {...props}
           options={{
             ['Send Image']: () => selectImage(sendImageMessage),
+            ['Send Video']: () => selectImage(console.log),
           }}
           containerStyle={{margin: 0, marginLeft: 10}}
           icon={() => (

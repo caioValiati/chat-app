@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { FlatList, TouchableHighlight, Text, Image, View, ScrollView, Pressable } from 'react-native';
 import { API_ENDPOINTS } from '../../constants/apiUrls';
 import { useIsFocused } from '@react-navigation/native';
@@ -33,6 +33,11 @@ const ContactsScreen = (props: {navigation: any}) => {
       axios.get(API_ENDPOINTS.GET_USUARIOS + `/${id}/Contatos`)
         .then((response: any) => {
           setUsers(response.data)
+        })
+        .catch((error: AxiosError) => {
+          if (error.response.status === 401) {
+            props.navigation.navigate("Login")
+          }
         })
     }
   
@@ -131,7 +136,17 @@ const ContactsScreen = (props: {navigation: any}) => {
                       </View>
                       <View style={{display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
                         <RenderTick status={item.lastMessage?.status} isFromMainUser={item.lastMessage?.usuarioRemetenteId == user?.id} />
-                        <Text style={{alignSelf: 'flex-start'}}>{item.lastMessage?.conteudo}</Text>
+                          {
+                            item.lastMessage?.conteudo ?
+                            <Text style={{alignSelf: 'flex-start'}}>{item.lastMessage?.conteudo}</Text>
+                            : (item.lastMessage?.image ? (
+                              <View style={{display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
+                                <IonicIcon name='image'/>
+                                <Text style={{ marginLeft: 3 }} >Imagem</Text>
+                              </View>
+                            )
+                            : <h1>asfaf</h1>)
+                          }
                       </View>
                     </View>
                   </View>

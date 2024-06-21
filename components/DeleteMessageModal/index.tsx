@@ -12,6 +12,7 @@ interface Props {
 }
 
 const DeleteMessageConfirmationModal = (props: Props) => {
+  console.log(props.currentSelectedMessage)
     const handleMessageDelete = () => {
       props.connection.invoke('DeleteMessage', props.currentSelectedMessage?._id)
         .then(() => {
